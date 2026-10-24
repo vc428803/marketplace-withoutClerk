@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Menu,
@@ -14,6 +14,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { AuthContext } from "../context/auth-context-def";
+import { apiUrl } from "../config/api";
+
+interface WalletResponse {
+  currency: string;
+  balance: number;
+}
 
 const links = [
   { label: "首頁 Desktop", to: "/" },
@@ -28,6 +34,11 @@ function Navabr() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
 
+  // Wallet 狀態
+  const [wallet, setWallet] = useState<WalletResponse | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+
+  // 取得登入資訊
   const auth = useContext(AuthContext);
 
   if (!auth) {
@@ -35,6 +46,50 @@ function Navabr() {
   }
 
   const { isAuthenticated, userInfo, authLoading } = auth;
+
+  useEffect(() => {
+    if (!isAuthenticated || !userInfo?.id) {
+      setWallet(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadWallet() {
+      setWallet(null);
+      setWalletLoading(true);
+
+      try {
+        const response = await fetch(apiUrl("/api/wallet"), {
+          credentials: "include",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Wallet HTTP ${response.status}`);
+        }
+
+        const data = (await response.json()) as WalletResponse;
+
+        if (!controller.signal.aborted) {
+          setWallet(data);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Wallet 載入失敗", error);
+          setWallet(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setWalletLoading(false);
+        }
+      }
+    }
+
+    void loadWallet();
+
+    return () => controller.abort();
+  }, [isAuthenticated, userInfo?.id]);
 
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
@@ -95,11 +150,10 @@ function Navabr() {
                 key={item.to}
                 to={item.to}
                 onClick={closeMenus}
-                className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm transition-colors ${
-                  active
-                    ? "border-cyan-400 text-cyan-200"
-                    : "border-transparent text-slate-300 hover:border-cyan-600 hover:text-cyan-200"
-                }`}
+                className={`whitespace-nowrap border-b-2 px-1 py-2 text-sm transition-colors ${active
+                  ? "border-cyan-400 text-cyan-200"
+                  : "border-transparent text-slate-300 hover:border-cyan-600 hover:text-cyan-200"
+                  }`}
               >
                 {item.label}
               </Link>
@@ -131,9 +185,8 @@ function Navabr() {
                 </span>
                 <ChevronDown
                   size={15}
-                  className={`text-cyan-300 transition-transform ${
-                    avatarOpen ? "rotate-180" : ""
-                  }`}
+                  className={`text-cyan-300 transition-transform ${avatarOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -170,11 +223,13 @@ function Navabr() {
                           遊戲幣餘額
                         </span>
                       </div>
-                      <div className="mt-2 text-2xl font-bold tracking-wide text-amber-300">
-                        -- G
-                      </div>
+                      {walletLoading
+                        ? "載入中..."
+                        : wallet
+                          ? `${wallet.balance.toLocaleString()} ${wallet.currency}`
+                          : "-- G"}
                       <p className="mt-1 text-xs text-slate-400">
-                        尚未連接 Wallet API
+                        {wallet ? "遊戲幣錢包" : "目前無法取得錢包餘額"}
                       </p>
                     </div>
 

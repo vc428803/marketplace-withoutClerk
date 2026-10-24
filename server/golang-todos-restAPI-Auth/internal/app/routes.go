@@ -31,6 +31,9 @@ func RegisterRoutes(
 	// Auth 模組
 	approutes.RegisterAuthRoutes(router, pool, cfg)
 
+	// Wallet 模組
+	approutes.RegisterWalletRoutes(router, pool, cfg)
+
 	// Product 模組
 	approutes.RegisterProductRoutes(router, pool, productsCache)
 
