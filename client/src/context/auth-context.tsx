@@ -1,9 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 
 import {
   AuthContext,
@@ -26,7 +21,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
     try {
-      const res = await fetch("http://localhost:8080/auth/me", {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
         credentials: "include",
       });
 
@@ -65,9 +60,5 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshAuth,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
