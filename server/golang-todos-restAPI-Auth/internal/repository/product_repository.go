@@ -65,12 +65,8 @@ func GetAllProducts(pool *pgxpool.Pool) ([]models.Product, error) {
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var products []models.Product
-	// featured 熱推商品
-	// true (1) 排在 false (0) 前面
-	// 相同 featured 的產品，按建立時間由新至舊排序
-	// 效果 : featured 為ture 會排在最前面，即使刊登時間不是最新，也會排在最前面，然後再從熱推當中時間最新的在最前面
-	// 第二順位才是 featured是 false (非熱推) 進行排序，但一樣是 非熱推中最新的擺最前面
+	products := make([]models.Product, 0)
+
 	query := `
 		SELECT id, owner_id, title, game, platform, username, views, monthly_views, price, description, verified, country, featured, created_at, updated_at
 		FROM products
