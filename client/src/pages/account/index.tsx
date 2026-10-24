@@ -37,8 +37,8 @@ function Panel({
 
 function AccountPage() {
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#030b16] text-slate-100">
-      <div className="flex min-h-[calc(100vh-80px)]">
+    <div className="min-h-screen bg-[#030b16] text-slate-100">
+      <div className="flex min-h-screen">
         {/* 左側奇幻世界導航 */}
         <aside
           className="hidden w-60 shrink-0 border-r border-cyan-900/80 bg-cover bg-center lg:block"
@@ -104,38 +104,6 @@ function AccountPage() {
           </header>
 
           <div className="space-y-5 p-5 md:p-8">
-            {/* 資產摘要 */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-amber-600/60 bg-amber-950/30 p-5">
-                <Coins className="mb-3 text-amber-400" size={28} />
-                <p className="text-sm text-amber-200">遊戲幣餘額</p>
-                <p className="mt-2 text-2xl font-bold text-amber-300">
-                  -- G
-                </p>
-                <p className="mt-2 text-xs text-slate-400">
-                  尚未連接 Wallet API
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-sky-600/60 bg-sky-950/30 p-5">
-                <Backpack className="mb-3 text-sky-400" size={28} />
-                <p className="text-sm text-sky-200">Marketplace 背包</p>
-                <p className="mt-2 text-2xl font-bold">-- 件</p>
-                <p className="mt-2 text-xs text-slate-400">
-                  尚未連接 Inventory API
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-orange-600/60 bg-orange-950/30 p-5">
-                <Store className="mb-3 text-orange-400" size={28} />
-                <p className="text-sm text-orange-200">我的上架商品</p>
-                <p className="mt-2 text-2xl font-bold">-- 件</p>
-                <p className="mt-2 text-xs text-slate-400">
-                  尚未連接 Listing API
-                </p>
-              </div>
-            </div>
-
             <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
               <Panel title="Marketplace 背包">
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">

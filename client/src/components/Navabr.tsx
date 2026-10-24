@@ -10,6 +10,7 @@ import {
   Store,
   ReceiptText,
   Gem,
+  Coins,
   Loader2,
 } from "lucide-react";
 import { AuthContext } from "../context/auth-context-def";
@@ -27,8 +28,13 @@ function Navabr() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
 
-  const { isAuthenticated, userInfo, authLoading } =
-    useContext(AuthContext);
+  const auth = useContext(AuthContext);
+
+  if (!auth) {
+    throw new Error("Navabr must be rendered inside AuthProvider");
+  }
+
+  const { isAuthenticated, userInfo, authLoading } = auth;
 
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
@@ -153,6 +159,22 @@ function Navabr() {
                       </div>
                       <p className="mt-2 break-all text-xs text-slate-400">
                         {userInfo?.email}
+                      </p>
+                    </div>
+
+                    {/* Wallet preview: waiting for real API */}
+                    <div className="mx-1 mt-3 rounded-lg border border-amber-600/40 bg-gradient-to-r from-[#2B2112] to-[#101E2B] p-3">
+                      <div className="flex items-center gap-2 text-amber-200">
+                        <Coins size={19} className="text-amber-400" />
+                        <span className="text-sm font-medium">
+                          遊戲幣餘額
+                        </span>
+                      </div>
+                      <div className="mt-2 text-2xl font-bold tracking-wide text-amber-300">
+                        -- G
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">
+                        尚未連接 Wallet API
                       </p>
                     </div>
 
