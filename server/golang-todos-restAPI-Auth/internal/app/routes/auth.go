@@ -12,4 +12,5 @@ func RegisterAuthRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Conf
 	router.POST("/auth/register", handlers.RegisterHandler(pool))
 	router.POST("/auth/login", handlers.LoginHandler(pool, cfg))
 	router.GET("/auth/me", handlers.MeHandler(cfg))
+	router.POST("/auth/logout", handlers.LogoutHandler)
 }

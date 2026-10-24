@@ -12,6 +12,7 @@ import {
   Gem,
   Coins,
   Loader2,
+  LogOut,
 } from "lucide-react";
 import { AuthContext } from "../context/auth-context-def";
 import { apiUrl } from "../config/api";
@@ -45,7 +46,7 @@ function Navabr() {
     throw new Error("Navabr must be rendered inside AuthProvider");
   }
 
-  const { isAuthenticated, userInfo, authLoading } = auth;
+  const { isAuthenticated, userInfo, authLoading, logout } = auth;
 
   useEffect(() => {
     if (!isAuthenticated || !userInfo?.id) {
@@ -107,6 +108,26 @@ function Navabr() {
       avatarLetter: name.charAt(0).toUpperCase(),
     };
   }, [userInfo]);
+
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+
+  async function handleLogout() {
+    if (logoutLoading) return;
+
+    setLogoutLoading(true);
+    setLogoutError("");
+
+    try {
+      await logout();
+      closeMenus();
+      window.location.assign("/");
+    } catch {
+      setLogoutError("登出失敗，請稍後重試");
+    } finally {
+      setLogoutLoading(false);
+    }
+  }
 
   function closeMenus() {
     setMenuOpen(false);
@@ -256,6 +277,24 @@ function Navabr() {
                         <ReceiptText size={17} />
                         交易紀錄（即將開放）
                       </div>
+                    </div>
+                    <div className="border-t border-cyan-900 pt-2">
+                      {logoutError && (
+                        <p role="alert" className="px-3 py-2 text-xs text-red-300">
+                          {logoutError}
+                        </p>
+                      )}
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={logoutLoading}
+                        onClick={() => void handleLogout()}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm text-red-300 transition hover:bg-red-900/25 hover:text-red-200 disabled:opacity-50"
+                      >
+                        <LogOut size={18} />
+                        {logoutLoading ? "登出中..." : "登出帳號"}
+                      </button>
                     </div>
                   </div>
                 </>
