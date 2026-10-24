@@ -1,5 +1,6 @@
+import { apiUrl } from "../config/api";
 export async function createAuctionListing(payload) {
-  const res = await fetch("http://localhost:8080/auctions", {
+  const res = await fetch(apiUrl("/auctions"), {
     method: "POST",
     credentials: "include",
     headers: {

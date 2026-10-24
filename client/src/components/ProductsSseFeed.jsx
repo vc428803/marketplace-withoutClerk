@@ -1,3 +1,4 @@
+import { sseUrl } from "../config/api";
 import { useEffect, useMemo, useState } from "react";
 
 function formatTime(ts) {
@@ -17,7 +18,7 @@ function safeStr(v, fallback = "") {
 }
 
 export default function ProductsSseTicker({
-  url = "http://localhost:8080/products/stream",
+  url = sseUrl("/products/stream"),
 }) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");

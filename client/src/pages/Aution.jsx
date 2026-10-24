@@ -1,3 +1,4 @@
+import { apiUrl } from "../config/api";
 import React, { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { assets } from "../assets/assets";
@@ -13,7 +14,7 @@ const Aution = () => {
         setLoading(true);
         setError("");
 
-        const res = await fetch("http://localhost:8080/auctions", {
+        const res = await fetch(apiUrl("/auctions"), {
           method: "GET",
           credentials: "include",
         });

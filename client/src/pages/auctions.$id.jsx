@@ -1,3 +1,4 @@
+import { apiUrl } from "../config/api";
 import React, { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -16,10 +17,10 @@ const AuctionDetailPage = () => {
         setError("");
 
         const [listingRes, bidsRes] = await Promise.all([
-          fetch(`http://localhost:8080/auctions/${id}`, {
+          fetch(apiUrl(`/auctions/${id}`), {
             credentials: "include",
           }),
-          fetch(`http://localhost:8080/auctions/${id}/bids`, {
+          fetch(apiUrl(`/auctions/${id}/bids`), {
             credentials: "include",
           }),
         ]);

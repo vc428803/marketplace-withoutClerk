@@ -1,3 +1,4 @@
+import { apiUrl } from "../config/api";
 // 自訂 hook 整合 useSearch + useQuery，專門處理文章 API
 import { useSearch } from "@tanstack/react-router";
 import axios from "axios";
@@ -16,7 +17,7 @@ async function fetchArticles(params) {
   // axios.get 直接傳 query string，自動附加到 base URL
   // 理由：比 fetch 簡潔，response.data 就是 JSON，無需 .json()
   const { data } = await axios.get(
-    `http://localhost:8080/articles?${queryString}`,
+    apiUrl(`/articles?${queryString}`),
   );
   return data;
 }

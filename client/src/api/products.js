@@ -1,6 +1,7 @@
+import { apiUrl } from "../config/api";
 import axios from "axios";
 export const getProducts = async () => {
-  const response = await fetch("http://localhost:8080/products", {
+  const response = await fetch(apiUrl("/products"), {
     headers: {
       Accept: "application/json",
     },
@@ -17,7 +18,7 @@ export const getProducts = async () => {
 
 export const searchProducts = async (keyword) => {
   const { data } = await axios.get(
-    `http://localhost:8080/products/search?keyword=${keyword}`,
+    apiUrl(`/products/search?keyword=${encodeURIComponent(keyword)}`),
   );
   return data;
 };

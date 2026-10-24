@@ -1,3 +1,4 @@
+import { apiUrl, sseUrl } from "../config/api";
 import { useContext, useState } from "react";
 import { AuthContext } from "../context/auth-context-def";  // 新增這行，注意路徑
 import { useProductNotices } from "../hooks/useProductNotices";
@@ -5,7 +6,7 @@ import { ProductNoticesPanel } from "../components/Home/ProductNoticesPanel";
 
 export default function MemberLoginSection() {
   const { refreshAuth } = useContext(AuthContext); // 取得 refresh 方法
-  const SSE_URL = "http://localhost:8080/products/stream";
+  const SSE_URL = sseUrl("/products/stream");
   const { notices, connected, error } = useProductNotices(SSE_URL);
 
   // 表單狀態
@@ -19,7 +20,7 @@ export default function MemberLoginSection() {
     setLoginError("");
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8080/auth/login", {
+      const response = await fetch(apiUrl("/auth/login"), {
         method: "POST",
         credentials: "include", // 送 request 時帶上現有 cookie，允許瀏覽器接收後端回傳的 cookie
         headers: {

@@ -1,3 +1,4 @@
+import { wsUrl } from "../config/api";
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { ArrowLeftIcon, FilterIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -137,7 +138,7 @@ const Marketplace = () => {
                   <ChatRoom
                     user={String(userInfo?.id || "")}
                     name={userInfo?.email || "Guest"}
-                    urlBase="ws://localhost:8080/ws"
+                    urlBase={wsUrl("/ws")}
                   />
                 </div>
               )}

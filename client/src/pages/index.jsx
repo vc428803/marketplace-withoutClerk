@@ -1,3 +1,4 @@
+import { apiUrl } from "../config/api";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/auth-context-def";
 import { createFileRoute } from "@tanstack/react-router";
@@ -89,8 +90,8 @@ const Home = () => {
     queryFn: async () => {
       const response = await fetch(
         // summer-login-campaign-test
-        // "http://localhost:8080/events/summer-login-campaign-test/tasks",
-        "http://localhost:8080/events/points-reward-demo/tasks",
+        // apiUrl("/events/summer-login-campaign-test/tasks"),
+        apiUrl("/events/points-reward-demo/tasks"),
         {
           method: "GET",
           credentials: "include",
