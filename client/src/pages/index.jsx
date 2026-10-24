@@ -9,7 +9,7 @@ import Plans from "../components/Plans";
 import ProductsSseFeed from "../components/ProductsSseFeed.jsx";
 import MarqueeCarousel from "../components/MarqueeCarousel.jsx";
 import Carousel from "../components/Carousel.jsx";
-import ProductNoticesSection from "../components/Home/ProductNoticesSection";
+import GuildExchangeSection from "../components/Home/GuildExchangeSection";
 import DesktopPointsRewards from "../components/pointsRewards/DesktopPointsRewards.jsx";
 import MobilePointsRewards from "../components/pointsRewards/MobilePointsRewards.jsx";
 import { useCountdown } from "../hooks/useCountdown";
@@ -176,7 +176,7 @@ const Home = () => {
               <Carousel slides={slides} />
             </div>
           </div>
-          <ProductNoticesSection />
+          <GuildExchangeSection />
           {isLoading && <div>載入積分任務中...</div>}
           {error && <div>載入失敗，請稍後再試</div>}
           {desktopProgress && mobileProgress && (
