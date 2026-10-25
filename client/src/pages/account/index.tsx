@@ -12,6 +12,9 @@ import {
   Shield,
   ArrowRight,
 } from "lucide-react";
+import InventoryItemDialog, {
+  type InventoryItem,
+} from "../../components/account/InventoryItemDialog";
 
 const menuItems = [
   { label: "資產總覽", Icon: Compass, active: true },
@@ -38,19 +41,9 @@ function Panel({
   );
 }
 
-type InventoryItem = {
-  id: string;
-  item_code: string;
-  name: string;
-  description: string;
-  image_url: string;
-  category: string;
-  is_tradeable: boolean;
-  status: string;
-};
-
 function AccountPage() {
-
+  const [selectedItem, setSelectedItem] =
+    useState<InventoryItem | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [inventoryError, setInventoryError] = useState("");
@@ -161,13 +154,18 @@ function AccountPage() {
                     const item = inventory[index];
 
                     return (
-                      <div
+                      <button
                         key={item?.id ?? `empty-${index}`}
-                        className={`flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border p-2 ${item
-                          ? "border-amber-500/70 bg-[#11283d]"
-                          : "border-sky-900 bg-[#091d30]/80"
-                          }`}
+                        type="button"
+                        disabled={!item}
+                        onClick={() => {
+                          if (item) setSelectedItem(item);
+                        }}
                         title={item?.name ?? "空背包格"}
+                        className={`flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-lg border p-2 transition ${item
+                          ? "cursor-pointer border-amber-500/70 bg-[#11283d] hover:border-amber-300 hover:bg-[#193850]"
+                          : "cursor-default border-sky-900 bg-[#091d30]/80"
+                          }`}
                       >
                         {item ? (
                           <>
@@ -188,7 +186,7 @@ function AccountPage() {
                         ) : (
                           <Package size={25} className="text-sky-900" />
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -230,9 +228,23 @@ function AccountPage() {
           </div>
         </main>
       </div>
+      <InventoryItemDialog
+        item={selectedItem}
+        onClose={() => setSelectedItem(null)}
+        onSell={(item) => {
+          console.log("一般販售：", item.id);
+          setSelectedItem(null);
+        }}
+        onAuction={(item) => {
+          console.log("競拍刊登：", item.id);
+          setSelectedItem(null);
+        }}
+      />
     </div>
   );
 }
+
+
 
 export const Route = createFileRoute("/account/")({
   component: AccountPage,
