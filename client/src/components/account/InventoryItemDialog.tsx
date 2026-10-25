@@ -1,16 +1,6 @@
 
 import { Sword, X, ShoppingBag, Gavel } from "lucide-react";
-
-export interface InventoryItem {
-  id: string;
-  item_code: string;
-  name: string;
-  description: string;
-  image_url: string;
-  category: string;
-  is_tradeable: boolean;
-  status: string;
-}
+import type { InventoryItem } from "../../types/inventory";
 
 interface InventoryItemDialogProps {
   item: InventoryItem | null;

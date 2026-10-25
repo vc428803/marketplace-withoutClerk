@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { apiUrl } from "../../config/api";
 import { Sword } from "lucide-react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { getMyInventory } from "../../api/inventory";
+import InventoryItemDialog from "../../components/account/InventoryItemDialog";
+import type { InventoryItem } from "../../types/inventory";
 import {
   Backpack,
   Coins,
@@ -12,9 +15,6 @@ import {
   Shield,
   ArrowRight,
 } from "lucide-react";
-import InventoryItemDialog, {
-  type InventoryItem,
-} from "../../components/account/InventoryItemDialog";
 
 const menuItems = [
   { label: "資產總覽", Icon: Compass, active: true },
@@ -42,6 +42,7 @@ function Panel({
 }
 
 function AccountPage() {
+  const navigate = useNavigate();
   const [selectedItem, setSelectedItem] =
     useState<InventoryItem | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -236,8 +237,14 @@ function AccountPage() {
           setSelectedItem(null);
         }}
         onAuction={(item) => {
-          console.log("競拍刊登：", item.id);
           setSelectedItem(null);
+
+          void navigate({
+            to: "/create-auction",
+            search: {
+              inventory_item_id: item.id,
+            },
+          });
         }}
       />
     </div>
