@@ -34,6 +34,9 @@ func RegisterRoutes(
 	// Wallet 模組
 	approutes.RegisterWalletRoutes(router, pool, cfg)
 
+	// Marketplace Inventory 模組
+	approutes.RegisterInventoryRoutes(router, pool, cfg)
+
 	// Product 模組
 	approutes.RegisterProductRoutes(router, pool, productsCache)
 
