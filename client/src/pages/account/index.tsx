@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { apiUrl } from "../../config/api";
+import { Sword } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Backpack,
@@ -35,7 +38,55 @@ function Panel({
   );
 }
 
+type InventoryItem = {
+  id: string;
+  item_code: string;
+  name: string;
+  description: string;
+  image_url: string;
+  category: string;
+  is_tradeable: boolean;
+  status: string;
+};
+
 function AccountPage() {
+
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [inventoryError, setInventoryError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadInventory() {
+      try {
+        const response = await fetch(apiUrl("/api/inventory/me"), {
+          credentials: "include",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("無法取得背包物品");
+        }
+
+        const result = await response.json();
+        setInventory(result.data ?? []);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setInventoryError("背包資料載入失敗");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setInventoryLoading(false);
+        }
+      }
+    }
+
+    loadInventory();
+
+    return () => controller.abort();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#030b16] text-slate-100">
       <div className="flex min-h-screen">
@@ -61,11 +112,10 @@ function AccountPage() {
               {menuItems.map(({ label, Icon, active }) => (
                 <div
                   key={label}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-sm ${
-                    active
-                      ? "border-cyan-400/70 bg-cyan-900/50 text-cyan-200 shadow-[0_0_16px_rgba(0,200,255,.17)]"
-                      : "border-transparent text-slate-300"
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-sm ${active
+                    ? "border-cyan-400/70 bg-cyan-900/50 text-cyan-200 shadow-[0_0_16px_rgba(0,200,255,.17)]"
+                    : "border-transparent text-slate-300"
+                    }`}
                 >
                   <Icon size={19} />
                   {label}
@@ -107,18 +157,48 @@ function AccountPage() {
             <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
               <Panel title="Marketplace 背包">
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-                  {Array.from({ length: 10 }, (_, index) => (
-                    <div
-                      key={index}
-                      className="flex aspect-square items-center justify-center rounded-lg border border-sky-900 bg-[#091d30]/80"
-                    >
-                      <Package size={25} className="text-sky-900" />
-                    </div>
-                  ))}
+                  {Array.from({ length: Math.max(10, inventory.length) }, (_, index) => {
+                    const item = inventory[index];
+
+                    return (
+                      <div
+                        key={item?.id ?? `empty-${index}`}
+                        className={`flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border p-2 ${item
+                          ? "border-amber-500/70 bg-[#11283d]"
+                          : "border-sky-900 bg-[#091d30]/80"
+                          }`}
+                        title={item?.name ?? "空背包格"}
+                      >
+                        {item ? (
+                          <>
+                            {item.image_url ? (
+                              <img
+                                src={item.image_url}
+                                alt={item.name}
+                                className="h-9 w-9 object-contain"
+                              />
+                            ) : (
+                              <Sword size={30} className="text-amber-300" />
+                            )}
+
+                            <span className="w-full truncate text-center text-xs text-amber-100">
+                              {item.name}
+                            </span>
+                          </>
+                        ) : (
+                          <Package size={25} className="text-sky-900" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <p className="mt-4 text-sm text-slate-400">
-                  背包欄位僅供視覺展示，尚未載入實際物品。
+                  {inventoryLoading
+                    ? "正在載入 Marketplace 背包..."
+                    : inventoryError
+                      ? inventoryError
+                      : `目前持有 ${inventory.length} 件物品`}
                 </p>
               </Panel>
 
