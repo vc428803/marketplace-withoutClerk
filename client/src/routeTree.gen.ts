@@ -23,6 +23,7 @@ import { Route as AccountIndexRouteImport } from './pages/account/index'
 import { Route as MemberRegisterPageIndexRouteImport } from './pages/MemberRegisterPage/index'
 import { Route as AuctionsIdRouteImport } from './pages/auctions.$id'
 import { Route as MemberRegisterPageRegisterRouteImport } from './pages/MemberRegisterPage/register'
+import { Route as MemberRegisterPageLoginRouteImport } from './pages/MemberRegisterPage/login'
 import { Route as MemberRegisterPageForgotPasswordRouteImport } from './pages/MemberRegisterPage/forgot-password'
 
 const CreateAuctionRoute = CreateAuctionRouteImport.update({
@@ -96,6 +97,11 @@ const MemberRegisterPageRegisterRoute =
     path: '/register',
     getParentRoute: () => MemberRegisterPageRouteRoute,
   } as any)
+const MemberRegisterPageLoginRoute = MemberRegisterPageLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => MemberRegisterPageRouteRoute,
+} as any)
 const MemberRegisterPageForgotPasswordRoute =
   MemberRegisterPageForgotPasswordRouteImport.update({
     id: '/forgot-password',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/MyOrders': typeof MyOrdersRoute
   '/create-auction': typeof CreateAuctionRoute
   '/MemberRegisterPage/forgot-password': typeof MemberRegisterPageForgotPasswordRoute
+  '/MemberRegisterPage/login': typeof MemberRegisterPageLoginRoute
   '/MemberRegisterPage/register': typeof MemberRegisterPageRegisterRoute
   '/auctions/$id': typeof AuctionsIdRoute
   '/MemberRegisterPage/': typeof MemberRegisterPageIndexRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/MyOrders': typeof MyOrdersRoute
   '/create-auction': typeof CreateAuctionRoute
   '/MemberRegisterPage/forgot-password': typeof MemberRegisterPageForgotPasswordRoute
+  '/MemberRegisterPage/login': typeof MemberRegisterPageLoginRoute
   '/MemberRegisterPage/register': typeof MemberRegisterPageRegisterRoute
   '/auctions/$id': typeof AuctionsIdRoute
   '/MemberRegisterPage': typeof MemberRegisterPageIndexRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/MyOrders': typeof MyOrdersRoute
   '/create-auction': typeof CreateAuctionRoute
   '/MemberRegisterPage/forgot-password': typeof MemberRegisterPageForgotPasswordRoute
+  '/MemberRegisterPage/login': typeof MemberRegisterPageLoginRoute
   '/MemberRegisterPage/register': typeof MemberRegisterPageRegisterRoute
   '/auctions/$id': typeof AuctionsIdRoute
   '/MemberRegisterPage/': typeof MemberRegisterPageIndexRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/MyOrders'
     | '/create-auction'
     | '/MemberRegisterPage/forgot-password'
+    | '/MemberRegisterPage/login'
     | '/MemberRegisterPage/register'
     | '/auctions/$id'
     | '/MemberRegisterPage/'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/MyOrders'
     | '/create-auction'
     | '/MemberRegisterPage/forgot-password'
+    | '/MemberRegisterPage/login'
     | '/MemberRegisterPage/register'
     | '/auctions/$id'
     | '/MemberRegisterPage'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/MyOrders'
     | '/create-auction'
     | '/MemberRegisterPage/forgot-password'
+    | '/MemberRegisterPage/login'
     | '/MemberRegisterPage/register'
     | '/auctions/$id'
     | '/MemberRegisterPage/'
@@ -322,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MemberRegisterPageRegisterRouteImport
       parentRoute: typeof MemberRegisterPageRouteRoute
     }
+    '/MemberRegisterPage/login': {
+      id: '/MemberRegisterPage/login'
+      path: '/login'
+      fullPath: '/MemberRegisterPage/login'
+      preLoaderRoute: typeof MemberRegisterPageLoginRouteImport
+      parentRoute: typeof MemberRegisterPageRouteRoute
+    }
     '/MemberRegisterPage/forgot-password': {
       id: '/MemberRegisterPage/forgot-password'
       path: '/forgot-password'
@@ -334,6 +353,7 @@ declare module '@tanstack/react-router' {
 
 interface MemberRegisterPageRouteRouteChildren {
   MemberRegisterPageForgotPasswordRoute: typeof MemberRegisterPageForgotPasswordRoute
+  MemberRegisterPageLoginRoute: typeof MemberRegisterPageLoginRoute
   MemberRegisterPageRegisterRoute: typeof MemberRegisterPageRegisterRoute
   MemberRegisterPageIndexRoute: typeof MemberRegisterPageIndexRoute
 }
@@ -342,6 +362,7 @@ const MemberRegisterPageRouteRouteChildren: MemberRegisterPageRouteRouteChildren
   {
     MemberRegisterPageForgotPasswordRoute:
       MemberRegisterPageForgotPasswordRoute,
+    MemberRegisterPageLoginRoute: MemberRegisterPageLoginRoute,
     MemberRegisterPageRegisterRoute: MemberRegisterPageRegisterRoute,
     MemberRegisterPageIndexRoute: MemberRegisterPageIndexRoute,
   }
