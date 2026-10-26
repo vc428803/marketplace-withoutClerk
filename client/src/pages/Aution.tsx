@@ -118,20 +118,22 @@ function AuctionCard({ item, now }: AuctionCardProps) {
         className="pointer-events-none absolute inset-0 z-0 h-full w-full object-fill"
       />
 
-      {/* 武器圖片：顯示在卡框上方 */}
-      <img
-        src="/nexelyth/items/weapons/nexelyth-azure-knight-sword.png"
-        alt="蒼藍騎士劍"
-        draggable={false}
-        className="pointer-events-none absolute left-[18%] top-[12%] z-10 h-[57%] w-[64%] object-contain"
-      />
+      {/* 只有真實商品且有圖片時才顯示 */}
+      {!item.isDemo && item.src && (
+        <img
+          src={item.src}
+          alt={item.alt}
+          draggable={false}
+          className="pointer-events-none absolute left-[18%] top-[12%] z-10 h-[57%] w-[64%] object-contain"
+        />
+      )}
 
-     {/* 物品名稱：置中在卡框名稱橫條 */}
-<div className="pointer-events-none absolute bottom-[25.5%] left-[14%] right-[14%] z-20 flex h-[7%] items-center justify-center">
-  <span className="block w-full truncate text-center text-[12px] font-bold leading-none text-amber-100 drop-shadow-[0_1px_3px_#000]">
-    {item.alt}
-  </span>
-</div>
+      {/* 物品名稱：置中在卡框名稱橫條 */}
+      <div className="pointer-events-none absolute bottom-[25.5%] left-[14%] right-[14%] z-20 flex h-[7%] items-center justify-center">
+        <span className="block w-full truncate text-center text-[12px] font-bold leading-none text-amber-100 drop-shadow-[0_1px_3px_#000]">
+          {item.alt}
+        </span>
+      </div>
 
 
       {/* 卡片底部：價格與倒數時間 */}
@@ -223,17 +225,30 @@ function Aution() {
     fetchAuctions();
   }, []);
 
-  const items: AuctionCardItem[] =
-    listings.length > 0
-      ? listings.map((listing) => ({
-        id: listing.id,
-        src: resolveAuctionImage(listing),
-        alt: listing.item_name,
-        currentPrice: listing.current_price,
-        endTime: listing.end_time,
-        isDemo: false,
-      }))
-      : DEMO_ITEMS;
+  const realItems: AuctionCardItem[] = listings.map((listing) => ({
+    id: listing.id,
+    src: resolveAuctionImage(listing),
+    alt: listing.item_name,
+    currentPrice: listing.current_price,
+    endTime: listing.end_time,
+    isDemo: false,
+  }));
+
+  const emptyCount = Math.max(0, 6 - realItems.length);
+
+  const emptyItems: AuctionCardItem[] = Array.from(
+    { length: emptyCount },
+    (_, index) => ({
+      id: `demo-empty-${index}`,
+      src: "",
+      alt: "",
+      currentPrice: 0,
+      endTime: null,
+      isDemo: true,
+    }),
+  );
+
+  const items: AuctionCardItem[] = [...realItems, ...emptyItems];
 
   const total = items.length;
 
