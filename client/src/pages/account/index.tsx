@@ -151,45 +151,73 @@ function AccountPage() {
             <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
               <Panel title="Marketplace 背包">
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-                  {Array.from({ length: Math.max(10, inventory.length) }, (_, index) => {
-                    const item = inventory[index];
 
-                    return (
-                      <button
-                        key={item?.id ?? `empty-${index}`}
-                        type="button"
-                        disabled={!item}
-                        onClick={() => {
-                          if (item) setSelectedItem(item);
-                        }}
-                        title={item?.name ?? "空背包格"}
-                        className={`flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-lg border p-2 transition ${item
-                          ? "cursor-pointer border-amber-500/70 bg-[#11283d] hover:border-amber-300 hover:bg-[#193850]"
-                          : "cursor-default border-sky-900 bg-[#091d30]/80"
-                          }`}
-                      >
-                        {item ? (
-                          <>
-                            {item.image_url ? (
+                  {Array.from(
+                    { length: Math.max(10, inventory.length) },
+                    (_, index) => {
+                      const item = inventory[index];
+
+                      return (
+                        <button
+                          key={item?.id ?? `empty-${index}`}
+                          type="button"
+                          disabled={!item}
+                          onClick={() => {
+                            if (item) setSelectedItem(item);
+                          }}
+                          title={item?.name ?? "空背包格"}
+                          className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg transition ${item
+                            ? "cursor-pointer bg-[#091d30] hover:brightness-125"
+                            : "cursor-default border border-sky-900 bg-[#091d30]/80"
+                            }`}
+                        >
+                          {item ? (
+                            <>
+                              {/* 共用金藍物品外框 */}
                               <img
-                                src={item.image_url}
-                                alt={item.name}
-                                className="h-9 w-9 object-contain"
+                                src="/nexelyth/ui/nexelyth-item-frame-gold-blue-cropped.png"
+                                alt=""
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-0 z-20 h-full w-full object-fill"
                               />
-                            ) : (
-                              <Sword size={30} className="text-amber-300" />
-                            )}
 
-                            <span className="w-full truncate text-center text-xs text-amber-100">
-                              {item.name}
-                            </span>
-                          </>
-                        ) : (
-                          <Package size={25} className="text-sky-900" />
-                        )}
-                      </button>
-                    );
-                  })}
+                              {/* 物品圖片或預設圖示 */}
+<div className="absolute inset-[18%] z-10 flex items-center justify-center">
+  {item.image_url || item.item_code === "SWORD_001" ? (
+    <img
+      src={
+        item.image_url ||
+        "/nexelyth/items/weapons/nexelyth-azure-knight-sword.png"
+      }
+      alt={item.name}
+      className="h-full w-full object-contain"
+    />
+  ) : (
+    <Sword
+      size={30}
+      className="text-amber-300"
+    />
+  )}
+</div>
+
+                              {/* 物品名稱 */}
+                              <div className="absolute bottom-[8%] left-[12%] right-[12%] z-30 text-center">
+                                <span className="block truncate text-[10px] font-semibold text-amber-100 drop-shadow-[0_2px_4px_#000] sm:text-xs">
+                                  {item.name}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <Package
+                              size={25}
+                              className="text-sky-900"
+                            />
+                          )}
+                        </button>
+                      );
+                    },
+                  )}
+
                 </div>
 
                 <p className="mt-4 text-sm text-slate-400">
