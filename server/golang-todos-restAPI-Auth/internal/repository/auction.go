@@ -4,71 +4,133 @@ import (
 	"context"
 	"errors"
 	"time"
+
 	"todo_api/internal/models"
 	"todo_api/internal/utils"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var (
+	ErrAuctionItemNotOwned    = errors.New("auction item not owned")
+	ErrAuctionItemUnavailable = errors.New("auction item unavailable")
+)
+
 // 建立一筆新的拍賣商品
-func CreateAuctionListing(pool *pgxpool.Pool, sellerID string, req models.CreateAuctionListingRequest) (*models.AuctionListing, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func CreateAuctionListing(
+	pool *pgxpool.Pool,
+	sellerID string,
+	req models.CreateAuctionListingRequest,
+) (*models.AuctionListing, error) {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		5*time.Second,
+	)
 	defer cancel()
 
-	utils.PerformOperation(ctx)
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
 
-	// 如果 min_increment 沒有傳或小於等於 0，就給預設值 1
-	minIncrement := req.MinIncrement
-	if minIncrement <= 0 {
-		minIncrement = 1
+	// 1. 鎖定背包中的實際物品
+	var ownerID string
+	var itemName string
+	var imageURL string
+	var description string
+	var category string
+	var isTradeable bool
+	var status string
+
+	err = tx.QueryRow(ctx, `
+        SELECT
+            i.owner_id,
+            d.name,
+            COALESCE(d.image_url, ''),
+            COALESCE(d.description, ''),
+            d.category,
+            d.is_tradeable,
+            i.status
+        FROM inventory_items i
+        JOIN item_definitions d
+            ON d.id = i.item_definition_id
+        WHERE i.id = $1
+        FOR UPDATE OF i
+    `, req.InventoryItemID).Scan(
+		&ownerID,
+		&itemName,
+		&imageURL,
+		&description,
+		&category,
+		&isTradeable,
+		&status,
+	)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrAuctionItemNotOwned
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	// current_price 在建立時，初始值直接等於起標價
-	query := `
-		INSERT INTO auction_listings (
-			seller_id,
-			item_name,
-			item_image_url,
-			category,
-			item_description,
-			starting_price,
-			current_price,
-			min_increment,
-			status,
-			start_time,
-			end_time
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $6, $7, 'active', CURRENT_TIMESTAMP, $8)
-		RETURNING
-			id,
-			seller_id,
-			item_name,
-			item_image_url,
-			category,
-			item_description,
-			starting_price,
-			current_price,
-			min_increment,
-			highest_bidder_id,
-			status,
-			start_time,
-			end_time,
-			created_at,
-			updated_at
-	`
+	// 2. 驗證物品所有權與狀態
+	if ownerID != sellerID {
+		return nil, ErrAuctionItemNotOwned
+	}
 
+	if !isTradeable || status != "AVAILABLE" {
+		return nil, ErrAuctionItemUnavailable
+	}
+
+	// 3. 從資料庫資料建立競拍紀錄
 	var listing models.AuctionListing
 
-	err := pool.QueryRow(
-		ctx,
-		query,
+	err = tx.QueryRow(ctx, `
+        INSERT INTO auction_listings (
+            seller_id,
+            inventory_item_id,
+            item_name,
+            item_image_url,
+            category,
+            item_description,
+            starting_price,
+            current_price,
+            min_increment,
+            status,
+            start_time,
+            end_time
+        )
+        VALUES (
+            $1, $2, $3, $4, $5, $6,
+            $7, $7, $8, 'active', NOW(), $9
+        )
+        RETURNING
+            id,
+            seller_id,
+            item_name,
+            item_image_url,
+            category,
+            COALESCE(item_description, ''),
+            starting_price,
+            current_price,
+            min_increment,
+            highest_bidder_id,
+            status,
+            start_time,
+            end_time,
+            created_at,
+            updated_at
+    `,
 		sellerID,
-		req.ItemName,
-		req.ItemImageURL,
-		req.Category,
-		req.ItemDescription,
+		req.InventoryItemID,
+		itemName,
+		imageURL,
+		category,
+		description,
 		req.StartingPrice,
-		minIncrement,
+		req.MinIncrement,
 		req.EndTime,
 	).Scan(
 		&listing.ID,
@@ -89,6 +151,29 @@ func CreateAuctionListing(pool *pgxpool.Pool, sellerID string, req models.Create
 	)
 
 	if err != nil {
+		return nil, err
+	}
+
+	// 4. 將物品標記為已上架
+	commandTag, err := tx.Exec(ctx, `
+        UPDATE inventory_items
+        SET status = 'LISTED',
+            updated_at = NOW()
+        WHERE id = $1
+          AND owner_id = $2
+          AND status = 'AVAILABLE'
+    `, req.InventoryItemID, sellerID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return nil, ErrAuctionItemUnavailable
+	}
+
+	// 5. 全部成功才提交
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 

@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"time"
+
 	"todo_api/internal/config"
 	"todo_api/internal/models"
 	"todo_api/internal/repository"
@@ -11,14 +14,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-var allowedAuctionCategories = map[string]bool{
-	"currency":   true,
-	"equipment":  true,
-	"consumable": true,
-	"material":   true,
-	"other":      true,
-}
 
 // 從 cookie 裡解析 JWT，拿出目前登入者的 user_id
 func getUserIDFromCookie(c *gin.Context, cfg *config.Config) (string, error) {
@@ -30,51 +25,85 @@ func getUserIDFromCookie(c *gin.Context, cfg *config.Config) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(cfg.JWTSecret), nil
 	})
+
 	if err != nil {
 		return "", err
 	}
 
+	// 未登入或 JWT 資料不正確的使用者就不會因為空錯誤而通過驗證
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return "", err
+		return "", errors.New("invalid token claims")
 	}
 
 	userIDValue, ok := claims["user_id"]
 	if !ok {
-		return "", err
+		return "", errors.New("missing user_id claim")
 	}
 
 	userID, ok := userIDValue.(string)
-	if !ok {
-		return "", err
+	if !ok || userID == "" {
+		return "", errors.New("invalid user_id claim")
 	}
 
 	return userID, nil
 }
 
 // 建立拍賣商品
-func CreateAuctionListingHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
+
+func CreateAuctionListingHandler(
+	pool *pgxpool.Pool,
+	cfg *config.Config,
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := getUserIDFromCookie(c, cfg)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+
+		if err != nil || userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "unauthorized",
+			})
 			return
 		}
 
 		var req models.CreateAuctionListingRequest
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid auction request",
+			})
 			return
 		}
 
-		if !allowedAuctionCategories[req.Category] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category"})
+		if !req.EndTime.After(time.Now()) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "end_time must be in the future",
+			})
 			return
 		}
 
-		listing, err := repository.CreateAuctionListing(pool, userID, req)
+		listing, err := repository.CreateAuctionListing(
+			pool,
+			userID,
+			req,
+		)
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			switch {
+			case errors.Is(err, repository.ErrAuctionItemNotOwned):
+				c.JSON(http.StatusForbidden, gin.H{
+					"error": "item is not owned by current user",
+				})
+
+			case errors.Is(err, repository.ErrAuctionItemUnavailable):
+				c.JSON(http.StatusConflict, gin.H{
+					"error": "item is unavailable for auction",
+				})
+
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "failed to create auction listing",
+				})
+			}
 			return
 		}
 

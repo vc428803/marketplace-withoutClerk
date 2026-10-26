@@ -34,12 +34,9 @@ type AuctionBid struct {
 
 // 建立拍賣商品時前端送來的資料
 type CreateAuctionListingRequest struct {
-	ItemName        string    `json:"item_name" binding:"required"`
-	ItemImageURL    string    `json:"item_image_url" binding:"required"`
-	Category        string    `json:"category" binding:"required"`
-	ItemDescription string    `json:"item_description"`
-	StartingPrice   int64     `json:"starting_price" binding:"required"`
-	MinIncrement    int64     `json:"min_increment"`
+	InventoryItemID string    `json:"inventory_item_id" binding:"required,uuid"`
+	StartingPrice   int64     `json:"starting_price" binding:"required,gt=0"`
+	MinIncrement    int64     `json:"min_increment" binding:"required,gt=0"`
 	EndTime         time.Time `json:"end_time" binding:"required"`
 }
 
