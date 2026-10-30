@@ -112,7 +112,7 @@ Unity VR 的共用 API 整合仍屬後續開發範圍，此圖代表目標架構
 ## 3. Project Structure
 
 ```text
-marketplace-withoutClerk/
+nexelyth-marketplace/
 ├── client/
 │   └── src/
 │
@@ -328,7 +328,7 @@ Marketplace 使用 Neon PostgreSQL 儲存使用者、商品、玩家背包、虛
 
 **NEXELYTH Marketplace**
 
-https://github.com/vc428803/marketplace-withoutClerk
+https://github.com/vc428803/nexelyth-marketplace/
 
 ### Related Project
 
