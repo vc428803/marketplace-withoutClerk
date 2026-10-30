@@ -21,7 +21,7 @@
 #.\migrate.ps1 create add_users_table
 
 # 強制指定版本
-# .\scripts\migrate.ps1 force up
+# .\scripts\migrate.ps1 force 14
 
 # 讀取 .env 檔案內容，一行一行處理
 Get-Content .env | ForEach-Object {
@@ -37,35 +37,47 @@ Get-Content .env | ForEach-Object {
 $command = $args[0]
 # 取得第二個 CLI 參數：名稱或數量
 $name = $args[1]
+# 將 Neon 的 postgresql:// 轉為 golang-migrate 使用的 postgres://
+# 移除連線字串前後的空白及引號
+$rawUrl = $env:POSTGRES_URL.Trim()
+$rawUrl = $rawUrl.Trim([char[]]@("'", '"'))
+
+# 將 postgresql:// 轉換為 postgres://
+$rawUrl = $env:POSTGRES_URL.Trim().Trim("'`"")
+$migrateDatabaseURL = $rawUrl -replace '^postgresql://', 'postgres://'
 
 # 根據 command 決定要執行哪個 migrate 行為
 switch ($command) {
-    # Run migrations
-    "up" { migrate -database $env:POSTGRES_URL -path migrations up }
-    # 回滾 migration
-    "down" { 
-        # 如果有指定參數就用它（回滾幾個）
-        # 沒指定預設回滾 1 個
+
+    # 查詢目前 Migration 版本（唯讀）
+    "version" {
+        migrate -database $migrateDatabaseURL -path migrations version
+    }
+
+    # 套用尚未執行的 Migration
+    "up" {
+        migrate -database $migrateDatabaseURL -path migrations up
+    }
+
+    # 回滾 Migration
+    "down" {
         $count = if ($name) { $name } else { "1" }
 
-        # 提示使用者確認，避免誤回滾, prevent destroy press N
         Write-Host "Rolling back $count migration(s). Continue? [y/N]"
-
-        # 只有輸入 y 才真的執行
         $confirm = Read-Host
-        if ($confirm -eq 'y') {
-            # check if running reverse migration also works
-            migrate -database $env:POSTGRES_URL -path migrations down $count
+
+        if ($confirm -eq "y") {
+            migrate -database $migrateDatabaseURL -path migrations down $count
         }
     }
-    # ===== migrate create =====
-    # 建立新的 migration 檔案
-    "create" { migrate create -ext sql -dir migrations -seq $name }
 
-    # ===== migrate force =====
-    # 強制設定 migration version
-    # 常用於：
-    # - migration 壞掉
-    # - dirty 狀態修復
-    "force" { migrate -database $env:POSTGRES_URL -path migrations force $name }
+    # 建立新的 Migration
+    "create" {
+        migrate create -ext sql -dir migrations -seq $name
+    }
+
+    # 強制設定 Migration 版本
+    "force" {
+        migrate -database $migrateDatabaseURL -path migrations force $name
+    }
 }
