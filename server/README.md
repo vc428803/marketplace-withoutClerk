@@ -1,159 +1,351 @@
+# NEXELYTH Marketplace — Backend
 
-> 這個專案主要用於理解 JWT + GIN + GOLANG + PostgreSQL 規劃登入註冊功能，完成後會把它遷移過去跟交易所的登入功能做整合
+**Go · Gin · PostgreSQL · JWT · REST API · WebSocket · SSE**
 
-#### 0214 更新
-> 已經確定 [分支](https://github.com/Vic428-human/todoapp-jwt/tree/connect-react-and-golang-postgres) 實驗過，React + ts + react-query + postgres + go + gin，本地端已經串起來。
-> 所以接下來到交易所版本2 加入本專案的後端，然後實驗post API，補充，在交易所版本2中，會拔掉clerk。
+NEXELYTH Marketplace Backend is a Go-powered trading service designed to support digital asset management, auction transactions, and future integration with the NEXELYTH virtual world.
 
+本專案使用 **Go + Gin Framework** 建立後端服務，採用 **Neon PostgreSQL** 管理使用者、玩家背包、虛擬貨幣錢包及競拍資料。
 
-- [本專案學習過程中的筆記整理](https://www.notion.so/2-2f6a54651e3e80d888ede6403ad3bf6a)
+目前 Marketplace Web 已透過 REST API 與 Go Backend 通訊，並由後端統一負責身分驗證、資料存取及交易業務規則。
 
-### 專案規劃流程 
-- 下載所需套件
-- 新專案要加資料表 (基於 mirgration 的方式添加)
-- Handler
-- Repository
+未來將進一步整合 [NEXELYTH Unity VR](https://github.com/vc428803/NEXELYTH)，讓 Web 與 VR Client 透過共用後端服務管理玩家身分及數位資產。
 
-#### 下載所需套件
-> 套件、DB安裝
+> **Project Status:** Active Development
+>
+> 主要 REST API、Authentication、Inventory、Wallet、Auction Listing、Ownership Validation 及 Transactional Listing 已有對應實作。
+>
+> 完整競拍結算、資產所有權轉移及 Unity VR 跨平台同步仍屬後續開發階段。
 
-```
-<!-- 快速生成檔案 -->
-mkdir cmd\api internal\config,internal\database,internal\handlers,internal\middleware,internal\models,internal\repository,migrations
+---
 
-<!-- initialize the project -->
-go mod init todo_api // go.mod會出現 module todo_api
+## 1. Architecture Overview
 
-<!-- run this project -->
-go run cmd\api\main.go // 主程式入口點
+### Current Architecture
 
-<!-- setup dependencies :　本專案會需要用的的套件及其用途 -->
+目前已實作的 Web Marketplace 架構：
 
-// https://ithelp.ithome.com.tw/articles/10387192
-go get -u github.com/gin-gonic/gin // 處理 http requests 
-
-<!-- 下載 postgres's driver -->
-// https://github.com/jackc/pgx/blob/f56ca73076f3fc935a2a049cf78993bfcbba8f68/examples/url_shortener/main.go#L11
-go get -u github.com/jackc/pgx/v5 
-go get -u github.com/jackc/pgx/v5/pgxpool // PostgreSQL驅動程式的connection pool版本，提供高效連線管理
-
-/*
-為何選擇Migrate庫 https://github.com/golang-migrate/migrate/tree/master/database/postgres
-版本控制和可追溯性: Migrate庫提供了一種簡潔的方式來版本化資料庫結構的改變。每個遷移都被保存為一個單獨的檔案，檔名通常包含時間戳和描述，這使得追蹤和審計資料庫結構的變更變得簡單直觀。這與手動管理一系列.sql腳本檔案相比，更加系統化和易於維護。
-自動化操作: 使用Migrate庫可以實現遷移操作的自動化，如自動執行下一個未應用的遷移或回滾到特定版本。這種自動化大大降低了人為錯誤的風險，並提高了開發和部署的效率。
-跨資料庫相容性: Migrate支援廣泛的資料庫技術，這意味著同一套遷移腳本可以用於不同的資料庫系統，從而簡化了多環境或多資料庫系統的遷移策略。
-易於整合和擴展: 作為一個Go庫，Migrate可以輕鬆整合到Go應用程式中。它也支援透過插件來擴展更多的資料庫類型或自訂遷移邏輯。
-*/
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-
-<!-- generates a bcrypt hash of a given password -->
-go get -u golang.org/x/crypto/bcrypt  // https://pkg.go.dev/golang.org/x/crypto/bcrypt
-
-<!--  read environment variables in golang -->
-go get -u github.com/joho/godotenv  // https://github.com/joho/godotenv
-
-<!-- 熱重載工具，作用是在你修改代碼文件後自動重新編譯並重啟程序 -->
-go install github.com/cosmtrek/air@latest // 路徑已經改成下方這個
-go install github.com/air-verse/air@latest // https://www.bilibili.com/opus/1068145464453365769 => 有詳細步驟
-
-<!-- install postgres  5432 port , 密碼:提示結婚 (安裝時的設定)-->
-psql --version // 確認是否下載
-psql -U postgres // 指定以 postgres 用户身份連接數據庫，如果失敗改用 psql -U z0983 ，電腦名稱是 z0983。
+```text
+         Marketplace Web
+          React + TypeScript
+                 |
+                 | HTTP / REST API
+                 | JWT Cookie
+                 v
+           Go Backend API
+            Gin Framework
+                 |
+       +---------+---------+
+       |         |         |
+       v         v         v
+     Auth     Inventory  Auctions
+       |         |         |
+       +---------+---------+
+                 |
+          Wallet / Products
+                 |
+                 v
+          Repository Layer
+                 |
+             pgxpool
+                 |
+                 v
+         Neon PostgreSQL
 ```
 
-#### 新專案要加資料表
-> migration 操作
+Web Client 不直接連線 PostgreSQL，而是透過 Go Backend 的 API 存取資料。
 
-```
-<!-- 新專案要加資料表、修改 schema（加欄位、改型別）、團隊合作時，讓大家資料庫版本一致時都會需要用的 -->
-migrate create -ext sql -dir migrations -seq create_users_table // 會產出 1.up and down migration  檔案。
+### Planned Cross-Platform Architecture
 
-.\scripts\migrate.ps1 up //  先 XXX_create_todos_table 裡面寫好sql語法創建table，接者操作指令建立資料表
-
-<!-- 下方是常見的db操作 -->
-\l // look at database, show us all of db, 正常會出現 postgres、template0、template1
-
-CREATE DARABSE XXX; // write sql query in uppercase
-
-rmdir /S /Q "C:\Program Files\PostgreSQL" // 安裝失敗的時候強制刪除 
-
-C:\Program Files\PostgreSQL\18\bin // 加到系統環境變數
-
-介紹 pgAdmin UI介面用法 // https://www.youtube.com/watch?v=T1PrXly6kOs
-
-\c todo_api // connected to database
-
-\q // quit connect 
-
-\dt // find table 
-
-NEW-ITEM -Path internal\config\config.go -ItemType File // create config.go file 
+```text
+       Marketplace Web        NEXELYTH Unity VR
+       React / TypeScript          Unity
+              |                      |
+              |                      |
+              +----------+-----------+
+                         |
+                         v
+                    Go Backend
+                     Gin API
+                         |
+             +-----------+-----------+
+             |           |           |
+             v           v           v
+          Identity    Inventory    Trading
+             |           |           |
+             +-----------+-----------+
+                         |
+                         v
+                   PostgreSQL
 ```
 
-#### 重要
-> 本地端會有不同專案，專案對應的DB都不同，如果忘記當前專案DB名稱是哪一個，可在環境變數中看到是 todo_api，
-> 特別備註是因為，當前維護不只一個專案用到 postgres，像是[拍賣場專案](https://github.com/Vic428-human/next14-ts-auction-app)就有用到，那個時候定義的 drizzle跟postagres是bb_bids，
-> 我當時還以為我誤刪交易所這邊的資料庫。
-- 連接特定DB 
-```
-psql -U postgres -d todo_api // 查看得到 todo_api => POSTGRES_URL=postgres://postgres:<結婚周年>@localhost:5432/todo_api?sslmode=disable
-```
-- cors問題
-> 有時候不一定是因為go沒設定，可能只是開多個專案，別的後端專案佔領3000 port了
+Unity VR 的共用 API 整合仍屬後續開發範圍，此圖代表目標架構。
 
-#### Handler 
-- Handler 層用途 
-> Handler 負責處理 HTTP 請求，執行業務邏輯（不涉及資料庫操作），接收請求、驗證參數、調用 Repository，然後回傳結果
+### Design Principles
 
-#### Repository 
-- Repository 層用途 
-> Repository 封裝 SQL 查詢，負責與資料庫互動（新增、修改、查詢等），讓 Handler 只需調用簡單介面，避免直接寫 SQL。
+- **API-Driven Client–Server Architecture** — Marketplace Web 透過 REST API 與 Go Backend 通訊，由後端統一處理身分驗證、業務邏輯及 Neon PostgreSQL 資料存取。Unity VR 未來亦將採用相同的 API 整合模式。
+- **Backend as the Authority** — 玩家身分、物品所有權及交易規則由後端判定，而非完全信任前端提交的資料。
+- **Shared Identity** — 使用者 UUID 作為 Web 與未來 Unity VR 共用身分的基礎。
+- **Transactional Consistency** — 使用 PostgreSQL Transaction、Row-Level Locking 與資料庫約束維護交易一致性。
+- **Modular Design** — 分離 API Routing、Request Handling 與 Database Access。
+- **Incremental Development** — 採取漸進式開發與重構，逐步擴充功能並保留既有系統的穩定性。
 
+---
 
-#### auth middleware jwt validation
-> API都規劃完成之後才處理,
+## 2. Technology Stack
 
-### 補充
-#### v5/pgxpool
-[Creating the Connection Pool](https://resources.hexacluster.ai/blog/postgresql/postgresql-client-side-connection-pooling-in-golang-using-pgxpool/
-)
+| Category | Technology |
+|---|---|
+| Programming Language | Go 1.25.5 |
+| Web Framework | Gin |
+| Database | PostgreSQL / Neon |
+| Database Driver | pgx/v5、pgxpool |
+| Authentication | JWT、bcrypt、HttpOnly Cookie |
+| API Communication | REST API / JSON |
+| Realtime Communication | WebSocket、SSE |
+| Database Migration | golang-migrate |
+| Development Tool | Air Hot Reload |
+| Environment Configuration | godotenv |
+| Version Control | Git / GitHub |
 
-#### golang air
-```
-// 因為本專案的main.go在cmd路徑裡
-.air.toml 裡面的 cmd 加上 ./cmd/api // cmd = "go build -o ./tmp/main.exe ./cmd/api" 
-```
+---
 
+## 3. Project Structure
 
-### 專案架構 
-```
-yourproject/
-├── go.mod
-├── cmd/  reponsible forrunning database
+```text
+marketplace-withoutClerk/
+├── client/
+│   └── src/
 │
-├── internal/ 
-│ └── config/  引用環境變數 
-│ └── database/    // Creating the Connection and Pooling for postgres
-│ └── config/    // handling our http request
-│ └── middleware/    // use for authentication
-│ └── models/    // 定義資料結構
-│ └── repository/    // 封裝 SQL 查詢，負責與資料庫互動（新增、修改、查詢等，存取資料
-│ └── handlers/ // HTTP API
-├── scripts/ 
-│ └── migrate.ps1/ //  把 powershell 寫成腳本，避免每次運行都寫一堆指令
+├── server/
+│   ├── cmd/
+│   │   ├── api/
+│   │   │   └── main.go
+│   │   └── seed-wallets/
+│   │       └── main.go
+│   │
+│   ├── internal/
+│   │   ├── app/
+│   │   │   ├── routes/
+│   │   │   ├── cors.go
+│   │   │   ├── jobs.go
+│   │   │   ├── router.go
+│   │   │   └── routes.go
+│   │   ├── chat/
+│   │   ├── config/
+│   │   ├── database/
+│   │   ├── handlers/
+│   │   ├── models/
+│   │   ├── repository/
+│   │   ├── stream/
+│   │   └── utils/
+│   │
+│   ├── migrations/
+│   ├── scripts/
+│   │   └── migrate.ps1
+│   ├── testdata/
+│   ├── .air.toml
+│   ├── .env.example
+│   ├── go.mod
+│   ├── go.sum
+│   └── README.md
 │
-├── migrations/  // migrate create -ext sql -dir migrations -seq create_todos_table 用途: 新專案要加資料表、修改 schema（加欄位、改型別）、團隊合作時，讓大家資料庫版本一致
-└── frontend/ 預期放登入註冊畫面
+├── docs/
+└── README.md
 ```
 
-### 知識點
+本地開發使用的 `server/.env` 不應納入 Git 版本控制。
 
-- [Basic Timeout with Context](https://go-cookbook.com/snippets/context/using-context-for-timeouts)
+### Directory Responsibilities
 
-### 比較這三個 Go Web 框架
+| Directory | Responsibility |
+|---|---|
+| `cmd/api` | Go API Server 入口 |
+| `cmd/seed-wallets` | 錢包資料初始化工具 |
+| `internal/app` | Router、Application 初始化及背景服務 |
+| `internal/app/routes` | 各模組 API 路由註冊 |
+| `internal/config` | 環境設定 |
+| `internal/database` | PostgreSQL 連線池 |
+| `internal/handlers` | HTTP Request / Response |
+| `internal/models` | 資料模型及請求模型 |
+| `internal/repository` | SQL 查詢、資料存取與 Transaction |
+| `internal/chat` | WebSocket 通訊 |
+| `internal/stream` | SSE 與資料快取 |
+| `internal/utils` | 共用工具 |
+| `migrations` | Database Schema 版本管理 |
+| `scripts` | Migration 管理工具 |
+| `testdata` | 測試資料 |
 
-| 框架 | 特點 | 效能 | Side Project 01 | Side Project 02|下載|
-|------|------|------|--------|------------------|------|
-| [Fiber](https://github.com/Vic428-human/todoapp-jwt/blob/main/Fiber_Eexpress_COMPARISONS.md) | 最像 Express.js，語法最接近 | 超高 |  | |go get github.com/gofiber/fiber/v2|
-| [Gin](https://github.com/Vic428-human/todoapp-jwt/blob/main/Gin_Eexpress_COMPARISONS.md) | 成熟穩定，生態系豐富 | 高 | https://github.com/Vic428-human/todoapp-jwt | https://github.com/Vic428-human/go-pizza-order-tracker |	"github.com/gin-gonic/gin"|
-| **Echo** | 功能完整，效能佳 | 高 | |  |尚未用過|
+### Backend Application Flow
+
+```text
+HTTP Request
+     |
+     v
+Gin Router
+     |
+     v
+Handler
+     |
+     v
+Repository
+     |
+     v
+pgxpool
+     |
+     v
+PostgreSQL
+```
+
+目前主要採用 Routes、Handlers、Repository 的分層方式，讓 HTTP 處理與資料庫存取維持職責分離。
+
+---
+
+## 4. Getting Started
+
+### Requirements
+
+- Go 1.25.5 或符合 `go.mod` 要求的版本
+- Git
+- Neon PostgreSQL
+- Air（選用，開發階段 Hot Reload）
+- golang-migrate（執行 Database Migration 時需要）
+
+### Installation
+
+在 Repository 根目錄執行：
+
+```bash
+cd server
+go mod download
+```
+
+### Environment Configuration
+
+在 `server` 目錄建立 `.env`：
+
+```env
+POSTGRES_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
+POSTGRES_PORT=3000
+JWT_SECRET=replace-with-your-own-secret
+```
+
+| Variable | Purpose |
+|---|---|
+| `POSTGRES_URL` | PostgreSQL Connection URL |
+| `POSTGRES_PORT` | Go HTTP Server Port |
+| `JWT_SECRET` | JWT Signing Key |
+
+`POSTGRES_PORT` 是目前程式使用的設定名稱，實際控制的是 Go HTTP Server Port。
+
+請勿將包含真實資料庫密碼或 JWT Secret 的 `.env` 提交至 Git。
+
+### Start Backend
+
+使用 Go：
+
+```bash
+go run ./cmd/api
+```
+
+開發階段使用 Air：
+
+```bash
+air
+```
+
+成功啟動時，預期出現：
+
+```text
+Successfully connected to PostgreSQL database
+server starting on port 3000
+Listening and serving HTTP on :3000
+```
+
+本地預設 API：
+
+`http://localhost:3000`
+
+目前 `.env` 透過工作目錄載入，因此建議在 `server` 目錄執行後端。
+
+---
+
+## 5. Database & Migration Management
+
+Marketplace 使用 Neon PostgreSQL 儲存使用者、商品、玩家背包、虛擬貨幣錢包及競拍資料。
+
+資料庫 Schema 透過 **golang-migrate** 進行版本管理，確保結構變更可以由 SQL Migration 檔案追蹤及重現。
+
+### Verified Migration Version
+
+截至 2026-10-31：
+
+| Item | Value |
+|---|---|
+| Migration Versions | 000001–000014 |
+| Migration Sets | 14 |
+| SQL Files | 28 |
+| Neon Recorded Version | 14 |
+| Latest Migration | `000014_link_auction_inventory` |
+
+已透過 `golang-migrate` CLI 查詢 Neon 的 Migration 版本紀錄，確認目前版本為 `14`。
+
+版本查詢成功不代表已執行完整的資料表結構檢查。
+
+### Migration History
+
+| Version | Purpose |
+|---|---|
+| 000001 | Create Todos |
+| 000002 | Create Products |
+| 000003 | Create Users |
+| 000004 | Create Tasks |
+| 000005 | Create User Task Progress |
+| 000006 | Create Event Points Configuration |
+| 000007 | Create Rewards |
+| 000008 | Create Events |
+| 000009 | Create Auction Listings |
+| 000010 | Create Auction Bids |
+| 000011 | Add Auction Categories |
+| 000012 | Create Wallet System |
+| 000013 | Create Marketplace Inventory |
+| 000014 | Link Auctions to Inventory |
+
+每個 Migration 版本包含兩個 SQL 檔案：
+
+```text
+000015_example.up.sql
+000015_example.down.sql
+```
+
+- `.up.sql` — 套用資料庫結構變更。
+- `.down.sql` — 回滾對應的結構變更。
+
+---
+
+## 6. Repository & Documentation
+
+### Main Repository
+
+**NEXELYTH Marketplace**
+
+https://github.com/vc428803/marketplace-withoutClerk
+
+### Related Project
+
+**NEXELYTH — Unity VR**
+
+https://github.com/vc428803/NEXELYTH
+
+兩個專案的長期目標是透過 Go Backend 建立跨平台玩家身分、數位資產及交易狀態整合。
+
+### Documentation
+
+- `../README.md` — Marketplace Project Overview
+- `../docs/ROADMAP.md` — Development Roadmap
+- `../docs/architecture/001-cross-platform.md` — Cross-Platform Architecture
+
+---
+
+**NEXELYTH Marketplace Backend**
+
+*Building reliable trading infrastructure for interconnected virtual worlds.*
