@@ -181,24 +181,29 @@ function AccountPage() {
                                 className="pointer-events-none absolute inset-0 z-20 h-full w-full object-fill"
                               />
 
-                              {/* 物品圖片或預設圖示 */}
-<div className="absolute inset-[18%] z-10 flex items-center justify-center">
-  {item.image_url || item.item_code === "SWORD_001" ? (
-    <img
-      src={
-        item.image_url ||
-        "/nexelyth/items/weapons/nexelyth-azure-knight-sword.png"
-      }
-      alt={item.name}
-      className="h-full w-full object-contain"
-    />
-  ) : (
-    <Sword
-      size={30}
-      className="text-amber-300"
-    />
-  )}
-</div>
+                              {/* 物品圖片：統一使用 API 提供的 Cloudflare URL */}
+                              <div className="absolute inset-[18%] z-10 flex items-center justify-center">
+                                {item.image_url?.trim() ? (
+                                  <img
+                                    src={item.image_url}
+                                    alt={item.name}
+                                    className="h-full w-full object-contain"
+                                    onError={(event) => {
+                                      console.error("Failed to load item image:", {
+                                        itemCode: item.item_code,
+                                        imageUrl: item.image_url,
+                                      });
+
+                                      event.currentTarget.style.display = "none";
+                                    }}
+                                  />
+                                ) : (
+                                  <Sword
+                                    size={30}
+                                    className="text-amber-300"
+                                  />
+                                )}
+                              </div>
 
                               {/* 物品名稱 */}
                               <div className="absolute bottom-[8%] left-[12%] right-[12%] z-30 text-center">
