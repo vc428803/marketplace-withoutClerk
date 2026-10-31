@@ -1,11 +1,11 @@
 import React from "react";
-import { platformIcons } from "../assets/assets";
 import {
   BadgeCheck,
   Flame,
   View,
   CircleDollarSign,
   MapPin,
+  Gamepad2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -42,7 +42,12 @@ const ListingCard = ({ listing }) => {
       <div className="p-5 pt-8 w-[100%]">
         {/* header */}
         <div className="flex items-center gap-3 mb-3">
-          {platformIcons[listing.platform]}
+          <div className="flex items-center gap-2">
+            <Gamepad2 className="w-5 h-5 text-indigo-500" />
+            <span className="text-xs text-gray-500">
+              {listing.platform || "Game"}
+            </span>
+          </div>
           <div className="flex flex-col">
             <div className="flex flex-row items-center justify-between">
               <div>商品: {listing.title}</div>
@@ -71,7 +76,7 @@ const ListingCard = ({ listing }) => {
           <div className="flex items-center text-sm text-gray-400">
             <View className="size-6 mr-1 text-gray-400" />
             <span className="text-lg font-medium text-slate-800 mr-1.5">
-              {listing.views.toLocaleString()}
+              {(listing.views ?? 0).toLocaleString()}
             </span>{" "}
             次
           </div>
@@ -100,7 +105,7 @@ const ListingCard = ({ listing }) => {
             <span>{formatNaturalDate(listing.updatedAt)}</span>
           </div>
           <button
-            className="px-7 py-3 bg-indigo-600 text-white text-sm rounded-lg hoverLbg-indigo-700 transition"
+            className="px-7 py-3 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
             onClick={() => {
               navigator(`/listing/${listing.id}`);
               scrollTo(0, 0);

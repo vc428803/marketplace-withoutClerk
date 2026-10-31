@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown, Currency, Filter, X } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const FilterSiderbar = ({
   showFilter,

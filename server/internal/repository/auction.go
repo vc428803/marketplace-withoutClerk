@@ -190,24 +190,28 @@ func GetAuctionListings(pool *pgxpool.Pool) ([]models.AuctionListing, error) {
 
 	query := `
 		SELECT
-			id,
-			seller_id,
-			item_name,
-			item_image_url,
-			item_description,
-			starting_price,
-			current_price,
-			min_increment,
-			highest_bidder_id,
-			status,
-			start_time,
-			end_time,
-			created_at,
-			updated_at
-		FROM auction_listings
-		WHERE status = 'active'
-		ORDER BY created_at DESC
-	`
+			a.id,
+			a.seller_id,
+			a.item_name,
+			COALESCE(d.image_url, '') AS item_image_url,
+			a.item_description,
+			a.starting_price,
+			a.current_price,
+			a.min_increment,
+			a.highest_bidder_id,
+			a.status,
+			a.start_time,
+			a.end_time,
+			a.created_at,
+			a.updated_at
+		FROM auction_listings a
+		LEFT JOIN inventory_items i
+			ON a.inventory_item_id = i.id
+		LEFT JOIN item_definitions d
+			ON i.item_definition_id = d.id
+		WHERE a.status = 'active'
+		ORDER BY a.created_at DESC
+		`
 
 	rows, err := pool.Query(ctx, query)
 	if err != nil {
